@@ -53,6 +53,28 @@ Open the local URL shown by Vite, usually http://localhost:5173
 
 Keep both terminals running while using the app.
 
+## Deploy on Render
+Deploy the backend and frontend as two separate Render services from the same GitHub repository.
+
+### Backend web service
+1. In Render, choose **New + > Web Service** and connect this repository.
+2. Set **Root Directory** to `backend`.
+3. Set **Build Command** to `npm install` and **Start Command** to `npm start`.
+4. Add these environment variables in the Render dashboard:
+   - `JWT_SECRET`: a long, unique random secret.
+   - `FRONTEND_URL`: the frontend Static Site URL, with no trailing slash. You can set this after creating the frontend service.
+   - `MONGODB_URI`: optional. Without it, the backend uses temporary demo memory and data is lost when it restarts.
+   - `OPENWEATHER_API_KEY`: optional.
+
+### Frontend Static Site
+1. In Render, choose **New + > Static Site** and connect the same repository.
+2. Set **Root Directory** to `frontend`.
+3. Set **Build Command** to `npm install && npm run build` and **Publish Directory** to `dist`.
+4. Add the environment variable `VITE_API_BASE` with the backend URL followed by `/api`, for example `https://your-backend.onrender.com/api`.
+5. Deploy the site, then copy its URL into the backend's `FRONTEND_URL` variable and redeploy the backend.
+
+The frontend URL must match `FRONTEND_URL` exactly (without a trailing slash), or browser API requests will be blocked by CORS. After changing frontend environment variables, trigger a new Static Site deploy because Vite reads them at build time.
+
 ## 5. Demo login / account
 Choose Register and create a demo account, or use the app without logging in to explore routes. For a classroom demo, do not use a real password you use elsewhere.
 

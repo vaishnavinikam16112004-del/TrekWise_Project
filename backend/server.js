@@ -8,7 +8,11 @@ const reportRoutes = require("./routes/reports");
 const weatherRoutes = require("./routes/weather");
 
 const app = express();
-app.use(cors({ origin: ["http://localhost:5173", "http://127.0.0.1:5173"] }));
+const allowedOrigins = ["http://localhost:5173", "http://127.0.0.1:5173"];
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL.replace(/\/$/, ""));
+}
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/", (_req, res) => res.json({ name: "TrekWise API", status: "running", mode: process.env.MONGODB_URI ? "MongoDB" : "demo memory" }));
