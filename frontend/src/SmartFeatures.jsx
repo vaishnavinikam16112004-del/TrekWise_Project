@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { estimateTrekBudget } from "./routeBudget";
 
 const tools = [
   { id: "planner", number: "01", label: "Trek planner", icon: "⌖" },
@@ -132,17 +133,16 @@ export default function SmartFeatures({ routes, onReport }) {
     event.preventDefault();
     if (!selectedRoute) return;
     const hours = Number(plannerForm.hours);
-    const travel = Math.round((350 + selectedRoute.distanceKm * 80) / 50) * 50;
-    const food = Math.max(200, Math.ceil(hours / 3) * 180);
-    const stay = plannerForm.overnight ? 1000 : 0;
-    const trail = 200 + Math.ceil(selectedRoute.elevationGainM / 250) * 100;
-    const total = travel + food + stay + trail;
+    const estimate = estimateTrekBudget(selectedRoute, {
+      hours,
+      overnight: plannerForm.overnight,
+    });
     const fitnessGap = difficultyRank[selectedRoute.difficulty] - fitnessRank[plannerForm.fitness];
     setPlan({
       route: selectedRoute,
-      costs: { Travel: travel, Food: food, Stay: stay, "Trail & local expenses": trail },
-      total,
-      withinBudget: total <= Number(plannerForm.budget),
+      costs: estimate.costs,
+      total: estimate.total,
+      withinBudget: estimate.total <= Number(plannerForm.budget),
       enoughTime: hours >= selectedRoute.durationHours,
       routeFit: fitnessGap <= 0 ? "Matches the selected fitness level." : "This route may be more challenging than your selected fitness level.",
       hours,

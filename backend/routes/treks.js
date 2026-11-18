@@ -15,6 +15,32 @@ function ageDifficultyMatch(age, routeDifficulty) {
   if (age < 18 || age >= 60) return ({ 1: 100, 2: 90, 3: 70 })[routeDifficulty];
   return ({ 1: 95, 2: 100, 3: 95 })[routeDifficulty];
 }
+function editDistance(left, right) {
+  const row = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= left.length; i += 1) {
+    let diagonal = row[0];
+    row[0] = i;
+    for (let j = 1; j <= right.length; j += 1) {
+      const above = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + (left[i - 1] === right[j - 1] ? 0 : 1));
+      diagonal = above;
+    }
+  }
+  return row[right.length];
+}
+function matchesRouteSearch(route, search) {
+  const routeText = `${route.fort} ${route.routeName} ${route.region}`.toLowerCase();
+  const normalizedSearch = String(search).trim().toLowerCase();
+  if (!normalizedSearch || routeText.includes(normalizedSearch)) return true;
+  const routeWords = routeText.split(/[^a-z0-9]+/).filter(Boolean);
+  const searchWords = normalizedSearch.split(/[^a-z0-9]+/).filter(Boolean);
+  return searchWords.every(searchWord => routeWords.some(routeWord => {
+    if (searchWord.length <= 4) return routeWord.includes(searchWord);
+    const tolerance = searchWord.length >= 8 ? 2 : 1;
+    return Math.abs(searchWord.length - routeWord.length) <= tolerance
+      && editDistance(searchWord, routeWord) <= tolerance;
+  }));
+}
 function scoreRoute(route, profile, reports, weather) {
   const userFitness = fitnessLevel(profile.fitness);
   const userExperience = fitnessLevel(profile.experience);
@@ -68,7 +94,7 @@ router.get("/", async (req, res) => {
       return res.status(400).json({ message: "Age must be a whole number between 13 and 100." });
     }
     const profile = { age, fitness, experience, availableHours, preferredDifficulty };
-    const filtered = baseRoutes.filter(r => `${r.fort} ${r.routeName} ${r.region}`.toLowerCase().includes(String(search).toLowerCase()));
+    const filtered = baseRoutes.filter(route => matchesRouteSearch(route, search));
     const results = filtered.map(r => scoreRoute(r, profile, reports, null))
       .sort((a, b) => b.compatibilityScore - a.compatibilityScore);
     res.json(results);

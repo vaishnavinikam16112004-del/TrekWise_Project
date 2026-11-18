@@ -14,6 +14,45 @@ const advancedTools = [
 ];
 
 const rank = { Beginner: 1, Moderate: 2, Advanced: 3 };
+const heritageImages = {
+  "raigad-pachad": "/images/forts/raigad-fort.jpg",
+  "sinhagad-pune": "/images/forts/sinhagad-fort.jpg",
+  "pratapgad-mahabaleshwar": "/images/forts/pratapgad-fort.jpg",
+  "lohagad-lonavala": "/images/forts/lohagad-fort.jpg",
+  "rajgad-fort": "/images/forts/rajgad-fort.jpg",
+  "torna-fort": "/images/forts/torna-fort.jpg",
+  "shivneri-fort": "/images/forts/shivneri-fort.jpg",
+  "harishchandragad-fort": "/images/forts/harishchandragad-fort.jpg",
+  "sindhudurg-fort": "/images/forts/sindhudurg-fort.jpg",
+  "visapur-fort": "/images/forts/visapur-fort.jpg",
+};
+const heritageMarkers = {
+  "raigad-pachad": [
+    { id: "maha-darwaja", title: "Maha Darwaja", detail: "A prominent fortified entrance within the historic Raigad complex." },
+    { id: "jagdishwar-temple", title: "Jagdishwar Temple", detail: "A notable temple on the fort; confirm current access and opening conditions locally." },
+  ],
+  "sinhagad-pune": [
+    { id: "tanaji-memorial", title: "Tanaji Malusare memorial", detail: "Sinhagad is associated with Tanaji Malusare and the 1670 Battle of Sinhagad." },
+    { id: "kalyan-darwaja", title: "Kalyan Darwaja", detail: "One of the historic gateways associated with the Sinhagad fort complex." },
+  ],
+  "pratapgad-mahabaleshwar": [
+    { id: "bhavani-temple", title: "Bhavani Temple", detail: "A well-known temple within the Pratapgad complex; check local visitor guidance." },
+    { id: "fort-history", title: "Fort history", detail: "Pratapgad is associated with the 1659 encounter between Shivaji Maharaj and Afzal Khan." },
+  ],
+  "lohagad-lonavala": [
+    { id: "vinchu-kata", title: "Vinchu Kata", detail: "A long fortified spur known for its shape, often compared to a scorpion's tail." },
+    { id: "four-gates", title: "Fort gateways", detail: "The fort is known for a sequence of historic gateways on its approach." },
+  ],
+  "rajgad-fort": [
+    { id: "padmavati-machi", title: "Padmavati Machi", detail: "One of Rajgad's prominent fortified spurs, with a temple and water cisterns." },
+    { id: "sanjivani-machi", title: "Sanjivani Machi", detail: "A long fortification spur noted for its layered defensive walls." },
+    { id: "balekilla", title: "Balekilla", detail: "The central citadel rises above Rajgad's surrounding machis." },
+  ],
+  "torna-fort": [
+    { id: "budhla-machi", title: "Budhla Machi", detail: "A distinctive spur of Torna, also called Prachandagad." },
+    { id: "zunjar-machi", title: "Zunjar Machi", detail: "A prominent fortified spur on Torna's extensive fort complex." },
+  ],
+};
 const emergencyInstructions = [
   "Stop and move away from immediate hazards if you can do so safely.",
   "If in India, call 112 for emergency assistance; confirm the correct local number for your area.",
@@ -219,13 +258,22 @@ function HeritageTool({ routes }) {
   const [routeId, setRouteId] = useState("");
   const [cameraStream, setCameraStream] = useState(null);
   const [cameraStatus, setCameraStatus] = useState("");
+  const [selectedMarkerId, setSelectedMarkerId] = useState("");
   const videoRef = useRef(null);
   const route = routes.find(item => item.id === (routeId || routes[0]?.id));
+  const markers = heritageMarkers[route?.id] || [{
+    id: "fort-overview",
+    title: "Fort overview",
+    detail: route?.heritage || "Historical details are not available for this fort yet.",
+  }];
+  const selectedMarker = markers.find(marker => marker.id === selectedMarkerId) || markers[0];
+  const image = heritageImages[route?.id];
 
   useEffect(() => {
     if (videoRef.current && cameraStream) videoRef.current.srcObject = cameraStream;
   }, [cameraStream]);
   useEffect(() => () => cameraStream?.getTracks().forEach(track => track.stop()), [cameraStream]);
+  useEffect(() => setSelectedMarkerId(""), [route?.id]);
   const startCamera = async () => {
     setCameraStatus("");
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -247,10 +295,12 @@ function HeritageTool({ routes }) {
   };
 
   return <section className="advanced-card">
-    <ToolHeading icon="⌖" eyebrow="AR HERITAGE EXPLORER · PREVIEW" title="Explore fort stories with a camera overlay." description="Turn on your camera only when you choose. This preview overlays a sample fact; it does not detect monuments or track your location." />
+    <ToolHeading icon="⌖" eyebrow="AR HERITAGE EXPLORER · PREVIEW" title="Explore fort stories with virtual markers." description="Choose a local fort photo or turn on your camera, then tap a marker to read a short historical fact." />
     <label className="advanced-select-label">Fort<select value={routeId || routes[0]?.id || ""} onChange={event => setRouteId(event.target.value)}>{routes.map(item => <option value={item.id} key={item.id}>{item.fort}</option>)}</select></label>
-    <div className="heritage-camera-grid"><div className="heritage-camera-view">{cameraStream ? <><video ref={videoRef} autoPlay playsInline muted aria-label="Local camera preview" /><div className="heritage-camera-overlay"><span>FORT STORY · SAMPLE</span><strong>{route?.fort}</strong><small>{route?.region}</small></div></> : <div className="camera-placeholder"><span>⌖</span><strong>Camera preview is off</strong><small>Camera permission is requested only after you press Start preview.</small></div>}</div>
-      <article className="heritage-fact"><span className="eyebrow">A STORY IN THE STONES</span><h4>{route?.fort || "Select a fort"}</h4><p>{route?.heritage || "Fort details will appear here."}</p><small>Introductory sample text · verify historical and access details with trusted sources.</small><div className="camera-actions">{cameraStream ? <button className="button secondary" onClick={stopCamera}>Stop camera</button> : <button className="button dark" onClick={startCamera}>Start camera preview</button>}</div></article>
+    <div className="heritage-camera-grid"><div className="heritage-camera-view">{cameraStream ? <video ref={videoRef} autoPlay playsInline muted aria-label="Local camera preview" /> : image ? <img className="heritage-photo" src={image} alt={`${route?.fort} historical reference photo`} /> : <div className="camera-placeholder"><span>⌖</span><strong>Photo unavailable</strong></div>}
+      {markers.map((marker, index) => <button key={marker.id} type="button" className={`heritage-marker ${selectedMarker?.id === marker.id ? "selected" : ""}`} style={{ top: `${28 + (index % 3) * 20}%`, left: `${24 + (index % 2) * 42}%` }} onClick={() => setSelectedMarkerId(marker.id)} aria-pressed={selectedMarker?.id === marker.id} aria-label={`Show ${marker.title} fact`}><span>{index + 1}</span><strong>{marker.title}</strong></button>)}
+      <div className="heritage-camera-overlay"><span>{cameraStream ? "CAMERA PREVIEW · SAMPLE MARKERS" : "FORT PHOTO · SAMPLE MARKERS"}</span><strong>{route?.fort}</strong><small>{route?.region}</small></div></div>
+      <article className="heritage-fact">{image && <img className="heritage-fact-image" src={image} alt={`${route?.fort} fort`} />}<span className="eyebrow">HISTORICAL STORY · {selectedMarker?.title}</span><h4>{route?.fort || "Select a fort"}</h4><p>{selectedMarker?.detail || route?.heritage || "Fort details will appear here."}</p><small>Introductory historical information. Marker positions are illustrative, not camera-tracked; verify details and access with trusted local sources.</small><div className="camera-actions">{cameraStream ? <button className="button secondary" onClick={stopCamera}>Stop camera</button> : <button className="button dark" onClick={startCamera}>Start camera preview</button>}</div></article>
     </div>
     {cameraStatus && <p className="advanced-status" role="status">{cameraStatus}</p>}
   </section>;
@@ -258,62 +308,102 @@ function HeritageTool({ routes }) {
 
 function GameTool({ routes }) {
   const storageKey = "trekwise-completed-routes";
+  const monthKey = (() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  })();
+  const monthlyStorageKey = `${storageKey}-${monthKey}`;
   const [completedIds, setCompletedIds] = useState([]);
+  const [monthlyCompletedIds, setMonthlyCompletedIds] = useState([]);
   const [status, setStatus] = useState("");
   const [selectedId, setSelectedId] = useState("");
+  const [certificateRouteId, setCertificateRouteId] = useState("");
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(storageKey);
-      if (!saved) return;
-      const parsed = JSON.parse(saved);
-      if (!Array.isArray(parsed) || parsed.some(id => typeof id !== "string")) throw new Error("Saved trek progress is invalid.");
-      setCompletedIds(parsed);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (!Array.isArray(parsed) || parsed.some(id => typeof id !== "string")) throw new Error("Saved trek progress is invalid.");
+        setCompletedIds(parsed);
+      }
+      const monthlySaved = window.localStorage.getItem(monthlyStorageKey);
+      if (monthlySaved) {
+        const parsedMonthly = JSON.parse(monthlySaved);
+        if (!Array.isArray(parsedMonthly) || parsedMonthly.some(id => typeof id !== "string")) throw new Error("Saved monthly trek progress is invalid.");
+        setMonthlyCompletedIds(parsedMonthly);
+      }
     } catch (error) {
       setStatus(`Could not load local progress: ${error.message}`);
     }
   }, []);
+  useEffect(() => {
+    if (!certificateRouteId) return undefined;
+    const timerId = window.setTimeout(() => window.print(), 100);
+    const clearCertificate = () => setCertificateRouteId("");
+    window.addEventListener("afterprint", clearCertificate);
+    return () => {
+      window.clearTimeout(timerId);
+      window.removeEventListener("afterprint", clearCertificate);
+    };
+  }, [certificateRouteId]);
   const selectedRoute = routes.find(route => route.id === (selectedId || routes[0]?.id));
+  const certificateRoute = routes.find(route => route.id === certificateRouteId);
   const points = completedIds.length * 100;
-  const level = points >= 500 ? "Pro Explorer" : points >= 200 ? "Trail Explorer" : "New Explorer";
+  const levelThresholds = [
+    { name: "New Trekker", minimum: 0, next: 100 },
+    { name: "Trail Scout", minimum: 100, next: 300 },
+    { name: "Trail Explorer", minimum: 300, next: 500 },
+    { name: "Sahyadri Pro", minimum: 500, next: null },
+  ];
+  const level = levelThresholds.find(item => points < item.next || item.next === null);
+  const levelProgress = level.next === null ? 100 : Math.min(100, ((points - level.minimum) / (level.next - level.minimum)) * 100);
   const addCompletion = () => {
     if (!selectedRoute || completedIds.includes(selectedRoute.id)) return;
     const updated = [...completedIds, selectedRoute.id];
+    const updatedMonthly = [...new Set([...monthlyCompletedIds, selectedRoute.id])];
     try {
       window.localStorage.setItem(storageKey, JSON.stringify(updated));
+      window.localStorage.setItem(monthlyStorageKey, JSON.stringify(updatedMonthly));
       setCompletedIds(updated);
+      setMonthlyCompletedIds(updatedMonthly);
       setStatus(`${selectedRoute.fort} added to your personal, self-reported trek log.`);
     } catch (error) {
       setStatus(`Could not save your local trek log: ${error.message}`);
     }
   };
-  const downloadCertificate = () => {
+  const printCertificate = () => {
     if (!selectedRoute || !completedIds.includes(selectedRoute.id)) return;
-    downloadText(`trekwise-personal-achievement-${selectedRoute.id}.txt`, [
-      "TREKWISE PERSONAL ACHIEVEMENT RECORD",
-      `${selectedRoute.fort}`,
-      "Self-reported trek completion · Not an official or verified certificate",
-      `Recorded locally on ${new Date().toLocaleDateString()}`,
-    ].join("\n"));
+    setCertificateRouteId(selectedRoute.id);
   };
   const previewLeaderboard = [
     { name: "Sample Summit Seeker", points: 1200 },
     { name: "Sample Trail Keeper", points: 900 },
     { name: "Sample Fort Explorer", points: 600 },
+    { name: "You · this browser", points: monthlyCompletedIds.length * 100, local: true },
+  ];
+  const leaderboard = previewLeaderboard.slice().sort((a, b) => b.points - a.points);
+  const milestones = [
+    { count: 1, title: "First steps" },
+    { count: 3, title: "Trail collector" },
+    { count: 5, title: "Fort explorer" },
+    { count: Math.max(6, routes.length), title: "Sahyadri champion" },
   ];
 
   return <section className="advanced-card">
-    <ToolHeading icon="✦" eyebrow="TREK REWARDS" title="Celebrate your own progress." description="Record completed treks locally, collect demo points and download a personal achievement note." />
-    <div className="game-progress-card"><div className="game-level-mark">✦</div><div><span className="eyebrow">YOUR LOCAL LEVEL</span><h4>{level}</h4><p>{points} points · {completedIds.length} self-reported {completedIds.length === 1 ? "trek" : "treks"}</p></div><div className="game-progress-bar"><span style={{ width: `${Math.min(100, points % 500 / 5 || (points === 0 ? 8 : 100))}%` }} /></div></div>
-    <div className="game-actions"><label className="advanced-select-label">Completed trek<select value={selectedId || routes[0]?.id || ""} onChange={event => setSelectedId(event.target.value)}>{routes.map(route => <option value={route.id} key={route.id}>{route.fort}</option>)}</select></label><button className="button dark" disabled={!selectedRoute || completedIds.includes(selectedRoute.id)} onClick={addCompletion}>{selectedRoute && completedIds.includes(selectedRoute.id) ? "Already in trek log" : "I completed this trek"}</button><button className="button secondary" disabled={!selectedRoute || !completedIds.includes(selectedRoute.id)} onClick={downloadCertificate}>Download achievement record</button></div>
-    {completedIds.length > 0 && <div className="game-badges"><span className="eyebrow">YOUR BADGES</span><div>{completedIds.map(id => <span className="game-badge" key={id}>✦ {routes.find(route => route.id === id)?.fort || "Completed trek"}</span>)}</div></div>}
-    <div className="sample-leaderboard"><div><span className="eyebrow">MONTHLY LEADERBOARD</span><span className="sample-tag">FICTIONAL PREVIEW</span></div>{previewLeaderboard.map((entry, index) => <div className="leader-row" key={entry.name}><span>0{index + 1}</span><strong>{entry.name}</strong><b>{entry.points} pts</b></div>)}</div>
+    <ToolHeading icon="✦" eyebrow="TREK REWARDS" title="Celebrate your own progress." description="Log a completed trek, earn local points, unlock milestone badges and print a personal certificate." />
+    <div className="game-progress-card"><div className="game-level-mark">✦</div><div><span className="eyebrow">YOUR LOCAL LEVEL</span><h4>{level.name}</h4><p>{points} points · {completedIds.length} self-reported {completedIds.length === 1 ? "trek" : "treks"}</p></div><div className="game-progress-bar"><span style={{ width: `${levelProgress}%` }} /></div></div>
+    <div className="game-actions"><label className="advanced-select-label">Completed trek<select value={selectedId || routes[0]?.id || ""} onChange={event => setSelectedId(event.target.value)}>{routes.map(route => <option value={route.id} key={route.id}>{route.fort}</option>)}</select></label><button className="button dark" disabled={!selectedRoute || completedIds.includes(selectedRoute.id)} onClick={addCompletion}>{selectedRoute && completedIds.includes(selectedRoute.id) ? "Already in trek log" : "I completed this trek"}</button><button className="button secondary" disabled={!selectedRoute || !completedIds.includes(selectedRoute.id)} onClick={printCertificate}>Print / save certificate</button></div>
+    <div className="game-badges"><span className="eyebrow">MILESTONE BADGES</span><div>{milestones.map(badge => <span className={`game-badge ${completedIds.length >= badge.count ? "earned" : "locked"}`} key={badge.title} aria-label={`${badge.title}${completedIds.length >= badge.count ? " earned" : " locked"}`}>{completedIds.length >= badge.count ? "✦" : "○"} {badge.title} · {badge.count}</span>)}</div></div>
+    <div className="sample-leaderboard"><div><span className="eyebrow">MONTHLY LEADERBOARD</span><span className="sample-tag">LOCAL + SAMPLE</span></div>{leaderboard.map((entry, index) => <div className={`leader-row ${entry.local ? "local-player" : ""}`} key={entry.name}><span>0{index + 1}</span><strong>{entry.name}</strong><b>{entry.points} pts</b></div>)}</div>
+    {certificateRoute && <article className="certificate-print"><span>TREKWISE · PERSONAL ACHIEVEMENT</span><h1>Trek completed</h1><h2>{certificateRoute.fort}</h2><p>This self-reported trek has been added to your personal TrekWise log.</p><small>Recorded {new Date().toLocaleDateString()} · Not an official or independently verified certificate</small></article>}
     {status && <p className="advanced-status" role="status">{status}</p>}
-    <p className="advanced-note">Progress stays in this browser. Completions are not verified; sample leaderboard entries are fictional and not connected to other trekkers.</p>
+    <p className="advanced-note">Progress stays in this browser. Monthly ranking includes fictional sample entries and this device only; completions are self-reported and not verified.</p>
   </section>;
 }
 
 function PackingTool({ routes }) {
   const [routeId, setRouteId] = useState("");
+  const [trekType, setTrekType] = useState("day");
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [checked, setChecked] = useState([]);
@@ -330,12 +420,13 @@ function PackingTool({ routes }) {
       "Personal medication and a basic first-aid kit.",
       "Tell a trusted contact your route and expected return time.",
     ];
+    if (trekType === "overnight") baseItems.push("Overnight layer, torch and confirmed accommodation or shelter plan.");
     if (route.difficulty === "Hard" || route.elevationGainM >= 500) baseItems.push("Trekking poles and extra rest / pacing plan for the ascent.");
     if (rainy) baseItems.push("Rain layer, dry bag and extra grip care; reconsider travel during severe weather.");
     else if (!weather || weather.error) baseItems.push("Weather protection — forecast unavailable, so check official alerts before departure.");
     if (route.durationHours >= 3) baseItems.push("Headlamp and extra snacks for a longer-than-planned return.");
     return baseItems;
-  }, [route, rainy, weather]);
+  }, [route, rainy, trekType, weather]);
   const checkForecast = async () => {
     if (!route) return;
     setWeatherLoading(true);
@@ -356,8 +447,8 @@ function PackingTool({ routes }) {
   const toggleItem = item => setChecked(current => current.includes(item) ? current.filter(entry => entry !== item) : [...current, item]);
 
   return <section className="advanced-card">
-    <ToolHeading icon="▣" eyebrow="SMART PACKING ASSISTANT" title="Pack for the route, not guesswork." description="Checklist suggestions adapt to route duration, difficulty and an optional forecast lookup." />
-    <div className="packing-controls"><label className="advanced-select-label">Route<select value={routeId || routes[0]?.id || ""} onChange={event => { setRouteId(event.target.value); setWeather(null); setChecked([]); }}>{routes.map(item => <option value={item.id} key={item.id}>{item.fort} · {item.difficulty}</option>)}</select></label><button className="button secondary" onClick={checkForecast} disabled={weatherLoading}>{weatherLoading ? "Checking forecast…" : "Check available weather"}</button></div>
+    <ToolHeading icon="▣" eyebrow="SMART PACKING ASSISTANT" title="Pack for the route, not guesswork." description="Checklist suggestions adapt to route duration, difficulty, trek type and an optional forecast lookup." />
+    <div className="packing-controls"><label className="advanced-select-label">Route<select value={routeId || routes[0]?.id || ""} onChange={event => { setRouteId(event.target.value); setWeather(null); setChecked([]); }}>{routes.map(item => <option value={item.id} key={item.id}>{item.fort} · {item.difficulty}</option>)}</select></label><label className="advanced-select-label">Trek type<select value={trekType} onChange={event => { setTrekType(event.target.value); setChecked([]); }}><option value="day">Day trek</option><option value="overnight">Overnight trek</option></select></label><button className="button secondary" onClick={checkForecast} disabled={weatherLoading}>{weatherLoading ? "Checking forecast…" : "Check available weather"}</button></div>
     {weather && !weather.error && <p className="packing-weather" role="status">Forecast for {weather.city || route?.region}: {weather.temperatureC}°C · {weather.description} · Rain risk {weather.rainRisk}. {weather.rainRisk === "high" ? "Avoid trekking in severe weather; confirm official alerts." : ""}</p>}
     <div className="packing-progress"><span>{checked.length} of {items.length} items checked</span><div><span style={{ width: `${items.length ? checked.length / items.length * 100 : 0}%` }} /></div></div>
     <div className="packing-list">{items.map(item => <label className={`packing-item ${checked.includes(item) ? "checked" : ""}`} key={item}><input type="checkbox" checked={checked.includes(item)} onChange={() => toggleItem(item)} /><span>{item}</span></label>)}</div>
@@ -395,27 +486,113 @@ function VoiceTool({ routes }) {
   const [language, setLanguage] = useState("en");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+  const shouldListenRef = useRef(false);
   const selectedRoute = routes.find(route => route.id === (routeId || routes[0]?.id));
   const languageOptions = { en: { locale: "en-IN", name: "English" }, hi: { locale: "hi-IN", name: "Hindi" }, mr: { locale: "mr-IN", name: "Marathi" } };
-  const brief = selectedRoute && (language === "en"
-    ? `${selectedRoute.fort}. This sample route is ${selectedRoute.difficulty}, approximately ${selectedRoute.durationHours} hours and ${selectedRoute.elevationGainM} meters ascent. Check local conditions and official alerts before departure.`
-    : language === "hi"
-      ? `${selectedRoute.fort}। यह नमूना रास्ता ${selectedRoute.difficulty} कठिनाई का है, लगभग ${selectedRoute.durationHours} घंटे और ${selectedRoute.elevationGainM} मीटर चढ़ाई। जाने से पहले स्थानीय स्थिति और आधिकारिक चेतावनी जाँचें।`
-      : `${selectedRoute.fort}. हा नमुना मार्ग ${selectedRoute.difficulty} कठीणतेचा आहे; अंदाजे ${selectedRoute.durationHours} तास आणि ${selectedRoute.elevationGainM} मीटर चढ. निघण्यापूर्वी स्थानिक परिस्थिती व अधिकृत सूचना तपासा.`);
+  const voiceContextRef = useRef({ route: selectedRoute, language });
+  useEffect(() => {
+    voiceContextRef.current = { route: selectedRoute, language };
+  }, [language, selectedRoute]);
+  const createBrief = (route, selectedLanguage) => route && (selectedLanguage === "en"
+    ? `${route.fort}. This sample route is ${route.difficulty}, approximately ${route.durationHours} hours and ${route.elevationGainM} meters ascent. Check local conditions and official alerts before departure.`
+    : selectedLanguage === "hi"
+      ? `${route.fort}। यह नमूना रास्ता ${route.difficulty} कठिनाई का है, लगभग ${route.durationHours} घंटे और ${route.elevationGainM} मीटर चढ़ाई। जाने से पहले स्थानीय स्थिति और आधिकारिक चेतावनी जाँचें।`
+      : `${route.fort}. हा नमुना मार्ग ${route.difficulty} कठीणतेचा आहे; अंदाजे ${route.durationHours} तास आणि ${route.elevationGainM} मीटर चढ. निघण्यापूर्वी स्थानिक परिस्थिती व अधिकृत सूचना तपासा.`);
+  const brief = createBrief(selectedRoute, language);
 
-  useEffect(() => () => window.speechSynthesis?.cancel(), []);
+  useEffect(() => () => {
+    shouldListenRef.current = false;
+    recognitionRef.current?.stop();
+    window.speechSynthesis?.cancel();
+  }, []);
   const speakBrief = () => {
     setStatus("");
+    const { route, language: currentLanguage } = voiceContextRef.current;
+    const currentBrief = createBrief(route, currentLanguage);
     if (!("speechSynthesis" in window)) {
       setStatus("Text-to-speech is not supported in this browser. Route details remain available on screen.");
       return;
     }
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(brief);
-    utterance.lang = languageOptions[language].locale;
+    const utterance = new SpeechSynthesisUtterance(currentBrief);
+    utterance.lang = languageOptions[currentLanguage].locale;
     utterance.onerror = event => setStatus(`Could not play voice guidance: ${event.error}`);
     window.speechSynthesis.speak(utterance);
-    setStatus(`Reading sample ${languageOptions[language].name} route guidance. This is not turn-by-turn navigation.`);
+    setStatus(`Reading sample ${languageOptions[currentLanguage].name} route guidance. This is not turn-by-turn navigation.`);
+  };
+  const stopVoiceCommands = () => {
+    shouldListenRef.current = false;
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setIsListening(false);
+    setStatus("Hands-free voice commands stopped.");
+  };
+  const startVoiceCommands = () => {
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) {
+      setStatus("Voice commands are not supported in this browser. Use the on-screen controls instead.");
+      return;
+    }
+    if (recognitionRef.current) recognitionRef.current.stop();
+    const recognition = new Recognition();
+    recognition.lang = languageOptions[language].locale;
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.onresult = event => {
+      const spoken = event.results[event.results.length - 1]?.[0]?.transcript?.trim();
+      if (!spoken) return;
+      const { language: currentLanguage } = voiceContextRef.current;
+      const command = spoken.toLocaleLowerCase(languageOptions[currentLanguage].locale);
+      if (/\b(play|read|briefing)\b/.test(command) || /निर्देश सुनाओ|जानकारी सुनाओ/.test(command) || /सूचना ऐकवा|माहिती सांगा/.test(command)) {
+        speakBrief();
+        return;
+      }
+      if (/\b(stop|pause)\b/.test(command) || /रोकें|बंद करो/.test(command) || /थांबा|बंद करा/.test(command)) {
+        window.speechSynthesis?.cancel();
+        setStatus("Voice briefing stopped.");
+        return;
+      }
+      const match = routes.find(route => command.includes(route.fort.toLocaleLowerCase(languageOptions[currentLanguage].locale))
+        || (route.id === "sinhagad-pune" && command.includes("sinhagad")));
+      if (match) {
+        setRouteId(match.id);
+        setQuery(spoken);
+        setStatus(`Selected ${match.fort}. Say “play briefing” to hear its preparation summary.`);
+      } else {
+        setStatus(`Heard “${spoken}”. Say a fort name, “play briefing”, or “stop audio”.`);
+      }
+    };
+    recognition.onerror = event => {
+      shouldListenRef.current = false;
+      setIsListening(false);
+      setStatus(`Voice commands stopped: ${event.error}`);
+    };
+    recognition.onend = () => {
+      if (!shouldListenRef.current) {
+        setIsListening(false);
+        return;
+      }
+      try {
+        recognition.start();
+      } catch (error) {
+        shouldListenRef.current = false;
+        setIsListening(false);
+        setStatus(`Could not continue listening: ${error.message}`);
+      }
+    };
+    recognitionRef.current = recognition;
+    shouldListenRef.current = true;
+    try {
+      recognition.start();
+      setIsListening(true);
+      setStatus(`Listening in ${languageOptions[language].name}. Say a fort name, “play briefing”, or “stop audio”.`);
+    } catch (error) {
+      shouldListenRef.current = false;
+      setIsListening(false);
+      setStatus(`Voice commands could not start: ${error.message}`);
+    }
   };
   const listenForRoute = () => {
     setStatus("");
@@ -448,9 +625,9 @@ function VoiceTool({ routes }) {
   };
 
   return <section className="advanced-card">
-    <ToolHeading icon="◖" eyebrow="VOICE-BASED TREK GUIDE" title="Listen to route preparation guidance." description="Use browser speech for a short route briefing or voice-search a fort. No live turn-by-turn trail navigation." />
+    <ToolHeading icon="◖" eyebrow="VOICE-BASED TREK GUIDE" title="Listen and control the guide hands-free." description="Use multilingual speech for preparation guidance, fort selection and audio controls. This is not live turn-by-turn navigation." />
     <div className="voice-controls"><label className="advanced-select-label">Voice language<select value={language} onChange={event => setLanguage(event.target.value)}><option value="en">English</option><option value="hi">Hindi</option><option value="mr">Marathi</option></select></label><label className="advanced-select-label">Route<select value={routeId || routes[0]?.id || ""} onChange={event => setRouteId(event.target.value)}>{routes.map(route => <option value={route.id} key={route.id}>{route.fort}</option>)}</select></label></div>
-    <div className="voice-brief"><span className="eyebrow">SAMPLE AUDIO BRIEFING</span><p>{brief}</p><div className="voice-actions"><button className="button dark" onClick={speakBrief}>▶ Play voice briefing</button><button className="button secondary" onClick={listenForRoute}>⌕ Search by voice</button></div></div>
+    <div className="voice-brief"><span className="eyebrow">SAMPLE AUDIO BRIEFING</span><p>{brief}</p><div className="voice-actions"><button className="button dark" onClick={speakBrief}>▶ Play voice briefing</button><button className="button secondary" onClick={listenForRoute}>⌕ Search by voice</button><button className="button secondary" onClick={isListening ? stopVoiceCommands : startVoiceCommands} aria-pressed={isListening}>{isListening ? "Stop hands-free commands" : "Start hands-free commands"}</button></div>{isListening && <small className="voice-command-help">Say a fort name, “play briefing”, or “stop audio”.</small>}</div>
     <form className="voice-search-form" onSubmit={event => {
       event.preventDefault();
       const match = routes.find(route => route.fort.toLowerCase().includes(query.trim().toLowerCase()));

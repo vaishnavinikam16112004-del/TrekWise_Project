@@ -212,8 +212,9 @@ export default function App() {
     const matchesBudget = routeFilters.maxBudgetInr === "any" || estimatedBudget <= Number(routeFilters.maxBudgetInr);
     return matchesDifficulty && matchesDistance && matchesBudget;
   }), [routes, routeFilters]);
+  const allRoutes = catalogRoutes.length ? catalogRoutes : routes;
   const favoriteRoutes = useMemo(() => catalogRoutes.filter(route => savedRoutes.includes(route.id)), [catalogRoutes, savedRoutes]);
-  const selectedMapRoute = routes.find(route => route.id === selectedMapRouteId) || routes[0];
+  const selectedMapRoute = allRoutes.find(route => route.id === selectedMapRouteId) || allRoutes[0];
   const mapEmbedUrl = selectedMapRoute
     ? `https://www.openstreetmap.org/export/embed.html?bbox=${(selectedMapRoute.longitude - 0.04).toFixed(4)}%2C${(selectedMapRoute.latitude - 0.03).toFixed(4)}%2C${(selectedMapRoute.longitude + 0.04).toFixed(4)}%2C${(selectedMapRoute.latitude + 0.03).toFixed(4)}&layer=mapnik&marker=${selectedMapRoute.latitude}%2C${selectedMapRoute.longitude}`
     : "";
@@ -408,6 +409,7 @@ export default function App() {
   };
 
   return <div className="app-shell" data-theme={theme}>
+    <a className="skip-link" href="#main-content">Skip to main content</a>
     <header className="navbar">
       <a href="#" className="brand" onClick={(e) => { e.preventDefault(); goTo("routes"); }}><span className="brand-mark">⌁</span><span>TrekWise<small>FIND YOUR WILD</small></span></a>
       <nav aria-label="Main navigation">
@@ -460,7 +462,7 @@ export default function App() {
         <div className="hero-index">17° 56' N&nbsp; · &nbsp;73° 35' E</div>
       </section>
 
-      <main className="main-content">
+      <main className="main-content" id="main-content">
         <section className="welcome-strip">
           <div><span className="eyebrow">{t("welcome.eyebrow")}</span><h2>{t("welcome.title")}, {account?.name?.split(" ")[0] || "explorer"} <span>✦</span></h2><p>{t("welcome.body")}</p></div>
           <div className="quick-stats"><div><strong>{catalogRoutes.length || routes.length || "—"}</strong><span>{t("welcome.trails")}</span></div><i></i><div><strong>{reports.length || "0"}</strong><span>{t("welcome.notes")}</span></div><i></i><button className="quick-stat-button" onClick={() => goTo("favorites")}><strong>{savedRoutes.length}</strong><span>{t("welcome.saved")}</span></button></div>
@@ -509,6 +511,13 @@ export default function App() {
           <div className="score-explainer"><div><span className="dot green"></span><p><strong>Your match</strong><small>Based on your profile and available time.</small></p></div><div><span className="dot gold"></span><p><strong>Trail indicator</strong><small>Uses sample data and community reports. Not a safety guarantee.</small></p></div><button className="text-button" onClick={() => goTo("advanced")}>View safety tools ↗</button></div>
         </section>
         <div className="route-grid">{loading ? <p>Loading trails…</p> : visibleRoutes.length ? visibleRoutes.map(route => <RouteCard key={route.id} route={{ ...route, reportCount: reportCounts[route.id] || 0 }} onReport={openReport} onReview={openReview} onInquiry={openInquiry} saved={savedRoutes.includes(route.id)} onSave={toggleSaved} t={t} />) : <p className="empty-state">{t("route.noResults")}</p>}</div>
+        <section className="fort-directory" aria-labelledby="fort-directory-title">
+          <div className="fort-directory-heading"><div><span className="eyebrow">THE FULL SAMPLE COLLECTION</span><h2 id="fort-directory-title">All {allRoutes.length} forts</h2><p>Browse the complete fort list, even while your search is filtered.</p></div><button className="text-button" onClick={() => goTo("maps")}>View all on map ↗</button></div>
+          <div className="fort-directory-grid">{allRoutes.map(route => <article className="fort-directory-card" key={route.id}>
+            <img src={routeImages[route.id] || routeImages["raigad-pachad"]} alt={`${route.fort}`} loading="lazy" />
+            <div className="fort-directory-copy"><span>{route.region}</span><strong>{route.fort}</strong><small>{route.difficulty} · {route.distanceKm} km · {route.durationHours} hrs</small><button type="button" onClick={() => { setSelectedMapRouteId(route.id); goTo("maps"); }}>Show on map ↗</button></div>
+          </article>)}</div>
+        </section>
         <section className="feature-rail"><div className="rail-heading"><div><span className="eyebrow">THOUGHTFUL TOOLS FOR THE TRAIL</span><h2>Adventure, with a little more insight.</h2></div><button className="text-button" onClick={() => goTo("safety")}>See how it works ↗</button></div><div className="rail-grid">
           <article><span className="rail-icon">✳</span><h3>Made for your pace</h3><p>Recommendations consider your experience, fitness and time.</p></article>
           <article><span className="rail-icon">⌖</span><h3>Know before you go</h3><p>Map links, weather checks and trail notes in one place.</p></article>
@@ -571,11 +580,11 @@ export default function App() {
       <section className="community-intro"><div><span className="eyebrow">ROUTE MAPS · OPENSTREETMAP</span><h2>Find your trailhead.</h2><p>Select a sample route to view its location and planning details. Map data needs an internet connection.</p></div></section>
       {selectedMapRoute ? <div className="map-layout">
         <section className="interactive-map-panel" aria-label={`Map of ${selectedMapRoute.fort}`}>
-          <iframe title={`OpenStreetMap showing ${selectedMapRoute.fort}`} src={mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+          <iframe key={selectedMapRoute.id} title={`OpenStreetMap showing ${selectedMapRoute.fort}`} src={mapEmbedUrl} loading="eager" referrerPolicy="no-referrer-when-downgrade" />
           <div className="map-caption"><span><strong>{selectedMapRoute.fort}</strong><small>{selectedMapRoute.region} · {selectedMapRoute.latitude.toFixed(4)}, {selectedMapRoute.longitude.toFixed(4)}</small></span><a className="button dark" href={selectedMapRoute.mapUrl} target="_blank" rel="noreferrer">Open full map ↗</a></div>
         </section>
-        <aside className="map-route-panel"><div className="map-route-heading"><span className="eyebrow">SAMPLE ROUTES</span><strong>{routes.length} locations</strong></div>
-          <div className="map-route-list">{routes.map(route => <button key={route.id} className={`map-route-option ${selectedMapRoute.id === route.id ? "selected" : ""}`} onClick={() => setSelectedMapRouteId(route.id)}>
+        <aside className="map-route-panel"><div className="map-route-heading"><span className="eyebrow">ALL SAMPLE FORTS</span><strong>{allRoutes.length} locations</strong></div>
+          <div className="map-route-list">{allRoutes.map(route => <button key={route.id} className={`map-route-option ${selectedMapRoute.id === route.id ? "selected" : ""}`} onClick={() => setSelectedMapRouteId(route.id)}>
             <span className="map-route-pin">⌖</span><span className="map-route-copy"><strong>{route.fort}</strong><small>{route.region} · {route.difficulty}</small><small>{route.distanceKm} km · +{route.elevationGainM} m ascent</small></span><span className="feature-arrow">↗</span>
           </button>)}</div>
           <div className="map-note"><strong>Map and elevation limits</strong><p>Markers show sample fort locations, not verified hiking tracks. Elevation gain is sample data; this prototype does not provide live GPS tracking, offline maps or turn-by-turn trail navigation.</p></div>
@@ -585,9 +594,8 @@ export default function App() {
       <RouteSketch />
     </main>}
 
-    {activeTab === "smart" && <SmartFeatures routes={routes} onReport={openSmartReport} />}
-
-    {activeTab === "advanced" && <AdvancedFeatures routes={routes} reports={reports} />}
+    {activeTab === "smart" && <SmartFeatures routes={allRoutes} onReport={openSmartReport} />}
+    {activeTab === "advanced" && <AdvancedFeatures routes={allRoutes} reports={reports} />}
 
     {activeTab === "report" && <main className="main-content page-main"><section className="form-section"><span className="eyebrow">COMMUNITY CARE</span><h2>Share a trail observation</h2><p>Recent, thoughtful reports help other trekkers plan. Reports are pending review and are not automatically verified.</p>
       <form className="stack-form" onSubmit={sendReport}><label>Fort / route<select required value={reportForm.routeId} onChange={e => setReportForm(p => ({ ...p, routeId: e.target.value }))}><option value="">Choose a route</option>{routes.map(r => <option value={r.id} key={r.id}>{r.fort} — {r.routeName}</option>)}</select></label><label>What did you notice?<select value={reportForm.type} onChange={e => setReportForm(p => ({ ...p, type: e.target.value }))}><option>Slippery trail</option><option>Blocked path</option><option>Landslide</option><option>Low water</option><option>Other</option></select></label><label>Your observation<textarea required minLength="5" maxLength="500" rows="4" value={reportForm.description} onChange={e => setReportForm(p => ({ ...p, description: e.target.value }))} placeholder="Where and when did you notice it? Please leave out private information."/></label><button className="button dark" type="submit">Submit for review →</button></form>
