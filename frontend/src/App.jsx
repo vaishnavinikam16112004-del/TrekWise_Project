@@ -118,6 +118,50 @@ function RouteCard({ route, onReport, onReview, onInquiry, saved, onSave, t }) {
   </article>;
 }
 
+function FortLocationMap({ routes, selectedRoute, onSelect }) {
+  const longitudes = routes.map(route => route.longitude);
+  const latitudes = routes.map(route => route.latitude);
+  const minLongitude = Math.min(...longitudes);
+  const longitudeRange = Math.max(...longitudes) - minLongitude || 1;
+  const minLatitude = Math.min(...latitudes);
+  const latitudeRange = Math.max(...latitudes) - minLatitude || 1;
+
+  return <div className="fort-location-map" aria-label="Illustrative map of sample fort locations">
+    <svg className="locator-terrain" viewBox="0 0 640 400" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <pattern id="locatorGrid" width="48" height="48" patternUnits="userSpaceOnUse">
+          <path d="M 48 0 L 0 0 0 48" fill="none" stroke="#d7e2d2" strokeWidth="1" />
+        </pattern>
+      </defs>
+      <rect width="640" height="400" fill="#f1f5ed" />
+      <rect width="640" height="400" fill="url(#locatorGrid)" />
+      <path d="M-20 305 C90 260 105 345 208 290 S330 250 410 288 S550 335 670 245" fill="none" stroke="#dce8d7" strokeWidth="30" />
+      <path d="M-20 305 C90 260 105 345 208 290 S330 250 410 288 S550 335 670 245" fill="none" stroke="#b8cdb1" strokeWidth="2" strokeDasharray="5 7" />
+      <path d="M52 60 C147 112 102 161 204 181 S345 145 380 205 S477 258 600 180" fill="none" stroke="#e0e9db" strokeWidth="2" />
+      <path d="M-10 115 C82 95 111 42 204 72 S362 115 442 74 S574 39 656 84" fill="none" stroke="#e0e9db" strokeWidth="2" />
+      <text x="24" y="34" fill="#789073" fontSize="11" fontWeight="700" letterSpacing="2">SAHYADRI · MAHARASHTRA</text>
+      <text x="24" y="378" fill="#82907e" fontSize="10">Approximate fort locations · not hiking trails</text>
+    </svg>
+    {routes.map((route, index) => {
+      const left = 8 + ((route.longitude - minLongitude) / longitudeRange) * 84;
+      const top = 12 + ((Math.max(...latitudes) - route.latitude) / latitudeRange) * 72;
+      const selected = route.id === selectedRoute.id;
+      return <button
+        key={route.id}
+        type="button"
+        className={`locator-marker ${selected ? "selected" : ""}`}
+        style={{ left: `${left}%`, top: `${top}%` }}
+        onClick={() => onSelect(route.id)}
+        aria-label={`Show ${route.fort} on map`}
+        title={route.fort}
+      >
+        <span>{String(index + 1).padStart(2, "0")}</span>
+        {selected && <strong>{route.fort}</strong>}
+      </button>;
+    })}
+  </div>;
+}
+
 function RouteSketch() {
   return <div className="route-sketch" aria-label="Illustrative elevation profile">
     <div className="sketch-label"><span>Elevation profile</span><strong>Trail overview</strong></div>
@@ -215,9 +259,6 @@ export default function App() {
   const allRoutes = catalogRoutes.length ? catalogRoutes : routes;
   const favoriteRoutes = useMemo(() => catalogRoutes.filter(route => savedRoutes.includes(route.id)), [catalogRoutes, savedRoutes]);
   const selectedMapRoute = allRoutes.find(route => route.id === selectedMapRouteId) || allRoutes[0];
-  const mapEmbedUrl = selectedMapRoute
-    ? `https://www.openstreetmap.org/export/embed.html?bbox=${(selectedMapRoute.longitude - 0.04).toFixed(4)}%2C${(selectedMapRoute.latitude - 0.03).toFixed(4)}%2C${(selectedMapRoute.longitude + 0.04).toFixed(4)}%2C${(selectedMapRoute.latitude + 0.03).toFixed(4)}&layer=mapnik&marker=${selectedMapRoute.latitude}%2C${selectedMapRoute.longitude}`
-    : "";
 
   const updateProfile = (key, value) => setProfile(p => ({ ...p, [key]: value }));
   const loadWithProfile = async (profileToLoad = profile, searchTerm = search, notify = true) => {
@@ -577,11 +618,11 @@ export default function App() {
     </main>}
 
     {activeTab === "maps" && <main className="main-content page-main maps-page">
-      <section className="community-intro"><div><span className="eyebrow">ROUTE MAPS · OPENSTREETMAP</span><h2>Find your trailhead.</h2><p>Select a sample route to view its location and planning details. Map data needs an internet connection.</p></div></section>
+      <section className="community-intro"><div><span className="eyebrow">FORT LOCATIONS · MAHARASHTRA</span><h2>Find your trailhead.</h2><p>Select a fort from the map or list to view its approximate location. OpenStreetMap links need an internet connection.</p></div></section>
       {selectedMapRoute ? <div className="map-layout">
         <section className="interactive-map-panel" aria-label={`Map of ${selectedMapRoute.fort}`}>
-          <iframe key={selectedMapRoute.id} title={`OpenStreetMap showing ${selectedMapRoute.fort}`} src={mapEmbedUrl} loading="eager" referrerPolicy="no-referrer-when-downgrade" />
-          <div className="map-caption"><span><strong>{selectedMapRoute.fort}</strong><small>{selectedMapRoute.region} · {selectedMapRoute.latitude.toFixed(4)}, {selectedMapRoute.longitude.toFixed(4)}</small></span><a className="button dark" href={selectedMapRoute.mapUrl} target="_blank" rel="noreferrer">Open full map ↗</a></div>
+          <FortLocationMap routes={allRoutes} selectedRoute={selectedMapRoute} onSelect={setSelectedMapRouteId} />
+          <div className="map-caption"><span><strong>{selectedMapRoute.fort}</strong><small>{selectedMapRoute.region} · {selectedMapRoute.latitude.toFixed(4)}, {selectedMapRoute.longitude.toFixed(4)}</small></span><a className="button dark" href={selectedMapRoute.mapUrl} target="_blank" rel="noreferrer">Open OpenStreetMap ↗</a></div>
         </section>
         <aside className="map-route-panel"><div className="map-route-heading"><span className="eyebrow">ALL SAMPLE FORTS</span><strong>{allRoutes.length} locations</strong></div>
           <div className="map-route-list">{allRoutes.map(route => <button key={route.id} className={`map-route-option ${selectedMapRoute.id === route.id ? "selected" : ""}`} onClick={() => setSelectedMapRouteId(route.id)}>

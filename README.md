@@ -91,7 +91,7 @@ Choose Register and create a demo account, or use the app without logging in to 
 - Compatibility scoring and recommendation explanation
 - Safety scoring with route conditions and community reports
 - Community reports and trek reviews
-- Interactive OpenStreetMap route viewer and elevation summaries
+- Offline-friendly fort location overview with a full OpenStreetMap link for each fort, plus elevation summaries
 - User-triggered location sharing for a personal check-in
 - Optional current weather lookup
 
